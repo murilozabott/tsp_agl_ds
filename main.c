@@ -2,108 +2,102 @@
 	TAD	separar essas funções de permutação e teste
 	Estrutura de dados - Lista pra checar adjacencia > matriz
 */
-
 #include <stdio.h>
 #include <stdlib.h>
+#include "lista.h"
 
 int melhor_distancia = 4000000;
-int melhor_caminho[12];
+int melhor_caminho[13];
 
-void testar_caminho(int **m, int *a, int n, int origem){
-	int res = 0;
-
-	if(m[origem][a[0]] == 0) return; // Não tem caminho entre a origem e o primeiro elemento da permutação
-	res += m[origem][a[0]];
+void testar_caminho(LISTA **l, int *caminho, int n, int origem){
+	int dist, res = 0;
 
 	for(int i = 1; i < n; i++){
-		if(m[a[i]][a[i-1]] == 0) return;
-		res += m[a[i]][a[i-1]];
+		//if(caminho[i] < caminho[i-1])
+		
+		if(dist = get_distancia(l[caminho[i]], caminho[i-1])) res += dist;
+		else return;
+		
+		//else
+		//	if(dist = get_distancia(l[caminho[i-1]], caminho[i])) res += dist;
+		//	else return;
+
+		if(res >= melhor_distancia) return;
 	}
 
-	if(m[origem][a[n-1]] == 0) return; // Não tem caminho entre a ultima posição da permutação e a origem
-	res += m[origem][a[n-1]];
-
-	if(res < melhor_distancia){
-		melhor_distancia = res;
-		for(int i = 0; i < n; i++){
-			melhor_caminho[i] = a[i] + 1;
-		}
+	melhor_distancia = res;
+	for(int i = 0; i < n; i++){
+		melhor_caminho[i] = caminho[i];
 	}
 }
 
-void permutar(int **m, int n, int origem){
-	// Implementação do algoritmo 'quickperm'
-	int a[n], p[n+1], i, j, k;
+void imprime(int *caminho, int n){
+	for(int i = 0; i < n; i++){
+		printf("%d ", caminho[i]);
+	} printf("\n");
+}
 
-	for(i = 0, k = 0; i < n; i++, k++){
-		p[i] = i;
-		
-		if(k == origem) ++k; // Pula a cidade de origem, ela não precisa permutar
-		a[i] = k;
+void permutar(LISTA** l, int n, int origem){
+	/*
+		Implementação do algoritmo 'quickperm' (quickperm.org)
+		Forma de transformar o algoritmo recursivo de permutações de Heap numa versão iterativa
+	*/
+	int caminho[n+1]; // Cria um array da ordem de cidades a visitar (necessário acesso direto pro algoritmo de permutação)
+	int p[n+1]; // Cria um vetor com o número de trocas p/ uma determinada posição (usado para "simular" recursão)
+
+	for(int i = 1, k = 1; i <= n; i++, k++){
+		p[i] = i-1;
+		if(k == origem) k++;
+		caminho[i] = k;
 	}
-	p[n] = n;
+	caminho[0] = caminho[n] = origem;
 
-	i = 1;
+	int i = 1, j;
 	while(i < n){
 		p[i]--;
 
-		if(i&1) j = p[i];
-		else j = 0;
+		if(i&1) j = 1;
+		else j = p[i]+1;
 
-		int temp = a[j];
-		a[j] = a[i];
-		a[i] = temp;
+		// Troca posições do caminho, gerando permutações com o minimo de trocas
+		int temp = caminho[j];
+		caminho[j] = caminho[i];
+		caminho[i] = temp;
 
-		testar_caminho(m, a, n, origem);
+		testar_caminho(l, caminho, n+1, origem);
 
-		i = 1;
+		i = 2;
 		while(p[i] == 0){
-			p[i] = i;
+			p[i] = i-1;
 			i++;
 		}
 	}
 }
 
-int **criar_matriz(int n){
-    int **matriz = (int **) calloc(n, sizeof(int *));
-	
-	for(int i = 0; i < n; i++)
-		matriz[i] = (int *) calloc(n, sizeof(int));
-    
-    return matriz;
-}
-
 int main(){
 	int n_cidades, origem;
 	scanf("%d %d", &n_cidades, &origem);
-    int **adj = criar_matriz(n_cidades);
 
-	// Leitura das linhas
-	int x, y;
-	while(scanf("%d %d", &x, &y) != EOF){
-		scanf("%d", &adj[x-1][y-1]);
-		// Usando uma matriz de adjacências e um grafo não direcionado, preenchemos a "ida e a volta" com a mesma distância
-		adj[y-1][x-1] = adj[x-1][y-1];
+	LISTA* adjacencias[n_cidades+1];
+	for(int i = 1; i <= n_cidades; i++)
+		adjacencias[i] = criar_lista();
+
+	int c1, c2, dist;
+	while(scanf("%d %d %d", &c1, &c2, &dist) != EOF){
+		inserir(adjacencias[c1], c2, dist);
+		inserir(adjacencias[c2], c1, dist);
 	}
 
-	permutar(adj, n_cidades-1, origem-1);
+	permutar(adjacencias, n_cidades, origem);
 
-	for(int i = 0; i < n_cidades; i++){
-		free(adj[i]);
-	}
-	free(adj);
+	for(int i = 1; i <= n_cidades; i++)
+		liberar_lista(adjacencias[i]);
 
-	printf("%d ", origem);
-	
-	// Como o caminho funciona nos 2 sentidos, segue o padrão das saidas no runcodes que é a primeira cidade depois da origem ser a de menor número
-	if(melhor_caminho[0] > melhor_caminho[n_cidades-2])
-		for(int i = n_cidades-2; i >= 0; i--)
-			printf("%d ", melhor_caminho[i]);
+	if(melhor_caminho[1] < melhor_caminho[n_cidades-1])
+		imprime(melhor_caminho, n_cidades+1);
 	else
-		for(int i = 0; i < n_cidades-1; i++)
-			printf("%d ", melhor_caminho[i]);
-	
-	printf("%d", origem);
+		imprime(melhor_caminho, n_cidades+1);
+		//imprime_reverso(melhor_caminho, n_cidades+1);
 
 	return 0;
 }
