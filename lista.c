@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdbool.h>
 #include <assert.h>
 #include "lista.h"
 
@@ -56,15 +57,18 @@ void inserir(LISTA* l, int c, int dist){
 	l->fim = n;
 }
 
-int get_distancia(LISTA* l, int c){
+bool existe_conexao(LISTA* l, int c, int *dist){
 	assert(l != NULL);
 	
 	NO* n = l->ini;
 
 	while(n != NULL){
-		if(n->cidade == c) return n->distancia;
+		if(n->cidade == c){
+			*dist = n->distancia;
+			return true;
+		}
 		n = n->prox;
 	}
 
-	return 0; // Assumindo que se existe caminho entre cidades distintas, sua distância não é 0
+	return false;
 }
